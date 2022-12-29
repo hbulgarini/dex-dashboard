@@ -3,7 +3,7 @@ import Decimal from 'decimal.js';
 import moment from 'moment'
 const uri = 'https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v2'
 
-const loadMoreInfoPair = async (pair) => {
+const loadMoreInfoPair = async (pairId) => {
     const getSwaps = async () => {
         let time = 0;
         let records = 1;
@@ -23,7 +23,7 @@ const loadMoreInfoPair = async (pair) => {
                     first: 1000,
                     skip: ${skip},
                     orderBy: timestamp, orderDirection: desc, where:
-                    { pair: "${pair.id}" }
+                    { pair: "${pairId}" }
                    ) {
                     id
                     pair {
@@ -53,6 +53,8 @@ const loadMoreInfoPair = async (pair) => {
             }
             `;
 
+            console.log(query)
+
             const querySwaps = await fetch(uri, {
                 method: 'POST',
                 headers: {
@@ -63,7 +65,7 @@ const loadMoreInfoPair = async (pair) => {
             });
 
             const data = (await querySwaps.json()).data.swaps
-
+            console.log('data', data)
             time++;
             if (records > 0) {
                 records = data.length
@@ -171,7 +173,7 @@ const loadMoreInfoPair = async (pair) => {
     })
 
     const allRecords = await readAllRecordsFromLocalStorageByPrefix(getSwapPrefix());
-    const newRecords = await saveRecordsToLocalStorage(storageId, records, prefix)
+    const newRecords = await saveRecordsToLocalStorage(pairId, records, getSwapPrefix())
 
     return [...records, ...allRecords]
 }

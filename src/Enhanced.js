@@ -1,6 +1,7 @@
 import * as React from 'react';
 import loadData from './utils/loadData';
-import { readAllRecordsFromLocalStorageByPrefix, getDaysLoaded, exportRecords } from './utils/localStorageManager'
+import loadMoreInfoPair from './utils/loadMoreInfoPair'
+import { readAllRecordsFromLocalStorageByPrefix, getDaysLoaded, exportRecords, getPairPrefix } from './utils/localStorageManager'
 import moment from 'moment'
 import { sortBy } from 'lodash'
 import Button from '@mui/material/Button';
@@ -60,8 +61,34 @@ function AddRemoveLiquidityTable(props) {
     </>
 }
 
+function SwapTable(props) {
+    const { rows } = props;
+    if (!rows.length) {
+        return null
+    }
+    return <>
+        {rows.map((tx) => (
+            <TableRow key={tx.id}>
+                <TableCell component="th" scope="row">
+                    <Chip label={tx.type} color={tx.type === "IN" ? "primary" : "error"} variant="outlined" />
+                </TableCell>
+                <TableCell align="right">{shortenText(tx.id)}</TableCell>
+                <TableCell align="right">{tx.tokenIn}</TableCell>
+                <TableCell align="right">{tx.amountIn}</TableCell>
+                <TableCell align="right">{tx.tokenOut}</TableCell>
+                <TableCell align="right">{tx.amountOut}</TableCell>
+                <TableCell align="right">{tx.price}</TableCell>
+                <TableCell align="right">{tx.amountUSD}</TableCell>
+                <TableCell align="right">
+                    <a target="_blank" href={`https://etherscan.io/tx/${tx.id}`}> {shortenText(tx.id)}</a>
+                </TableCell>
+            </TableRow>
+        ))}
+    </>
+}
+
 function Row(props) {
-    const { row } = props;
+    const { row, loadMoreInfo } = props;
     const [open, setOpen] = React.useState(false);
 
     return (
@@ -113,6 +140,7 @@ function Row(props) {
                             <Typography variant="h6" gutterBottom component="div">
                                 History
                             </Typography>
+
                             <Table size="small" aria-label="purchases">
                                 <TableHead>
                                     <TableRow>
@@ -127,6 +155,30 @@ function Row(props) {
                                     <AddRemoveLiquidityTable rows={row.burns} action="Remove" />
                                 </TableBody>
                             </Table>
+                            <Button onClick={() => loadMoreInfo(row.id)} variant="contained">
+                                Load more info
+                            </Button>
+                            {row.swaps.length &&
+                                <div>{JSON.stringify(row.swaps)}</div>
+                                /*                                 <Table size="small" aria-label="purchases">
+                                                                    <TableHead>
+                                                                        <TableRow>
+                                                                            <TableCell>Type</TableCell>
+                                                                            <TableCell align="right">From</TableCell>
+                                                                            <TableCell align="right">Token In</TableCell>
+                                                                            <TableCell align="right">Amount In</TableCell>
+                                                                            <TableCell align="right">Token Out</TableCell>
+                                                                            <TableCell align="right">Amount Out</TableCell>
+                                                                            <TableCell align="right">Price</TableCell>
+                                                                            <TableCell align="right">Amount USD</TableCell>
+                                                                            <TableCell align="right">Transaction</TableCell>
+                                                                        </TableRow>
+                                                                    </TableHead>
+                                                                    <TableBody>
+                                                                        <SwapTable rows={row.swaps} />
+                                                                    </TableBody>
+                                                                </Table> */
+                            }
                         </Box>
                     </Collapse>
                 </TableCell>
@@ -355,6 +407,20 @@ export default function EnhancedTable() {
         setLoadingPairs(null)
     }, [date]);
 
+    const loadMoreInfo = React.useCallback(async (pair) => {
+        console.log('loadMoreInfo  useCallback pair', pair)
+        const swaps = await loadMoreInfoPair(pair);
+        console.log('loadMoreInfo  useCallback swaps', swaps)
+        const pairsWithSwap = rows.map(row => {
+            if (row.id === pair) {
+                console.log('pair found', pair)
+                row.swaps = swaps;
+            }
+            return row
+        })
+        setRows(pairsWithSwap)
+    }, [rows])
+
     const download = React.useCallback(async () => {
         await exportRecords()
     }, [date]);
@@ -362,7 +428,7 @@ export default function EnhancedTable() {
     React.useEffect(() => {
         // declare the data fetching function
         const fetchRowsStored = async () => {
-            const rowsLoaded = await readAllRecordsFromLocalStorageByPrefix();
+            const rowsLoaded = await readAllRecordsFromLocalStorageByPrefix(getPairPrefix());
             let daysLoaded = await getDaysLoaded();
             setDaysLoaded(daysLoaded)
             setRows(rowsLoaded)
@@ -480,7 +546,7 @@ export default function EnhancedTable() {
 
                                     const labelId = `enhanced-table-checkbox-${index}`;
                                     return (
-                                        <Row key={row.id} row={row} />
+                                        <Row key={row.id} row={row} loadMoreInfo={loadMoreInfo} />
                                     );
                                 })}
                             {emptyRows > 0 && (

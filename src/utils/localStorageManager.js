@@ -2,10 +2,10 @@ import localforage from 'localforage';
 
 async function saveRecordsToLocalStorage(id, records, prefix, dateToLog) {
     try {
-        await localforage.setItem(`${getPairId}${id}`, JSON.stringify(records));
+        await localforage.setItem(`${prefix}${id}`, JSON.stringify(records));
         // This code runs once the value has been loaded
         // from the offline store.
-        console.log(`${getPairId(id)} was successfully stored in local storage`)
+        console.log(`${prefix}${id}} was successfully stored in local storage`)
         if (dateToLog) {
             let daysLoaded = await getDaysLoaded();
             await localforage.setItem("daysLoaded", JSON.stringify([...daysLoaded, dateToLog]));

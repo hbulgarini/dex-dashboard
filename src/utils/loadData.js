@@ -263,6 +263,7 @@ const loadData = async (from, to, dateToLog) => {
         info.initialLiquidity = 0
         info.exitResult = 'ONGOING'
         info.exitLiquidity = 'ONGOING'
+        info.swaps = []
         if (info.mints.length) {
             info.initialLiquidity = initialLiquidity.toNumber()
         }
@@ -275,7 +276,7 @@ const loadData = async (from, to, dateToLog) => {
     })
 
     const allRecords = await readAllRecordsFromLocalStorageByPrefix(getPairPrefix());
-    const newRecords = await saveRecordsToLocalStorage(storageId, records, prefix, dateToLog)
+    const newRecords = await saveRecordsToLocalStorage(storageId, records, getPairPrefix(), dateToLog)
 
     return [...records, ...allRecords]
 }
