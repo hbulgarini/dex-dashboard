@@ -1,7 +1,25 @@
 import { saveRecordsToLocalStorage, readAllRecordsFromLocalStorageByPrefix, idIsRegisteredInLocalStorage, getSwapPrefix } from './localStorageManager'
 import Decimal from 'decimal.js';
+import { ethers } from "ethers";
 import moment from 'moment'
+import { indexOf } from 'lodash';
+
 const uri = 'https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v2'
+
+const provider = new ethers.providers.AlchemyProvider('mainnet', '47IFQ3H-2v6lpfUMT033lIJ4RNX33iAB');
+
+async function getDetailsFromAPI(transactionHash) {
+    const receipt = await provider.getTransactionReceipt(transactionHash);
+
+    // Return the transaction details
+    return {
+        from: receipt.from,
+        to: receipt.to,
+        value: receipt.value,
+        contractAddress: receipt.contractAddress,
+        status: receipt.status
+    };
+}
 
 const loadMoreInfoPair = async (pairId) => {
     const getSwaps = async () => {
@@ -53,8 +71,6 @@ const loadMoreInfoPair = async (pairId) => {
             }
             `;
 
-            console.log(query)
-
             const querySwaps = await fetch(uri, {
                 method: 'POST',
                 headers: {
@@ -91,13 +107,7 @@ const loadMoreInfoPair = async (pairId) => {
         return { symbol: swap.pair.token0.symbol, tokenAddress: swap.pair.token0.id }
     }
 
-    const getTotalOutputAmount = (data, desiredSymbols) =>
-        data.reduce((total, obj) => {
-            if (desiredSymbols.includes(obj.pair.token0.symbol)) {
-                return total.plus(new Decimal(obj.amount0Out));
-            }
-            return total.plus(new Decimal(obj.amount1Out));
-        }, new Decimal(0));
+
 
     const getFormattedValues = (temp) => {
         const beforeDecimalPoint = temp.substring(0, temp.indexOf("."));
@@ -147,17 +157,20 @@ const loadMoreInfoPair = async (pairId) => {
         }
     };
 
-    const records = swaps.map(swap => {
+    const promises = swaps.map(async swap => {
         let info = {};
         const { symbol, tokenAddress } = getSymbolAndAddress(swap, desiredSymbols)
         info.id = swap.id;
+        info.pairId = pairId;
         info.token0 = swap.pair.token0.symbol
         info.token1 = swap.pair.token1.symbol
         info.amountUSD = getFormattedValues(swap.amountUSD);
+        info.sender = swap.sender;
+        info.transactionId = swap.transaction.id
 
         const action = getSwapInfo(swap, desiredSymbols);
         const { amountIn, amountOut, type, tokenIn, tokenOut } = getSwapInfo(swap, desiredSymbols);
-        const price = Decimal(amountOut).dividedBy(amountIn);
+        const price = Decimal(amountOut).dividedBy(amountIn).toString();
 
         info.amountIn = amountIn;
         info.amountOut = amountOut;
@@ -169,8 +182,13 @@ const loadMoreInfoPair = async (pairId) => {
         const date = new Date(swap.timestamp * 1000);
         info.created = date.toUTCString();
 
+        const { from, status } = await getDetailsFromAPI(info.transactionId)
+        info.from = from;
+        info.status = status
         return info
     })
+
+    const records = await Promise.all(promises)
 
     const allRecords = await readAllRecordsFromLocalStorageByPrefix(getSwapPrefix());
     const newRecords = await saveRecordsToLocalStorage(pairId, records, getSwapPrefix())
@@ -178,7 +196,25 @@ const loadMoreInfoPair = async (pairId) => {
     return [...records, ...allRecords]
 }
 
-export default loadMoreInfoPair;
+
+const desiredSymbols = ["WETH", "USDC", "DAI"];
+const calculateTotalSwapOut = (data) =>
+    data.reduce((total, obj) => {
+        if (desiredSymbols.includes(obj.tokenOut.symbol)) {
+            return total.plus(new Decimal(obj.amountOut));
+        }
+        return total
+    }, new Decimal(0));
+
+const calculateTotalSwapIn = (data) =>
+    data.reduce((total, obj) => {
+        if (desiredSymbols.includes(obj.tokenIn.symbol)) {
+            return total.plus(new Decimal(obj.amountIn));
+        }
+        return total
+    }, new Decimal(0));
+
+export { loadMoreInfoPair, calculateTotalSwapOut, calculateTotalSwapIn };
 
 
 

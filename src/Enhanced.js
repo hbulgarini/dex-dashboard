@@ -1,7 +1,7 @@
 import * as React from 'react';
 import loadData from './utils/loadData';
-import loadMoreInfoPair from './utils/loadMoreInfoPair'
-import { readAllRecordsFromLocalStorageByPrefix, getDaysLoaded, exportRecords, getPairPrefix } from './utils/localStorageManager'
+import { loadMoreInfoPair, calculateTotalSwapOut, calculateTotalSwapIn } from './utils/loadMoreInfoPair'
+import { readAllRecordsFromLocalStorageByPrefix, getDaysLoaded, exportRecords, getPairPrefix, getSwapPrefix } from './utils/localStorageManager'
 import moment from 'moment'
 import { sortBy } from 'lodash'
 import Button from '@mui/material/Button';
@@ -61,35 +61,55 @@ function AddRemoveLiquidityTable(props) {
     </>
 }
 
+
 function SwapTable(props) {
     const { rows } = props;
-    if (!rows.length) {
-        return null
-    }
+    console.log('rows', rows)
     return <>
         {rows.map((tx) => (
-            <TableRow key={tx.id}>
+            <TableRow key={`${tx.id}${Math.random()}`}>
                 <TableCell component="th" scope="row">
                     <Chip label={tx.type} color={tx.type === "IN" ? "primary" : "error"} variant="outlined" />
                 </TableCell>
-                <TableCell align="right">{shortenText(tx.id)}</TableCell>
-                <TableCell align="right">{tx.tokenIn}</TableCell>
+                <TableCell align="right">
+                    <a target="_blank" href={`https://etherscan.io/account/${tx.from}`}> {shortenText(tx.from)}</a>
+                </TableCell>
+                <TableCell align="right">{tx.tokenIn.symbol}</TableCell>
                 <TableCell align="right">{tx.amountIn}</TableCell>
-                <TableCell align="right">{tx.tokenOut}</TableCell>
+                <TableCell align="right">{tx.tokenOut.symbol}</TableCell>
                 <TableCell align="right">{tx.amountOut}</TableCell>
                 <TableCell align="right">{tx.price}</TableCell>
                 <TableCell align="right">{tx.amountUSD}</TableCell>
                 <TableCell align="right">
-                    <a target="_blank" href={`https://etherscan.io/tx/${tx.id}`}> {shortenText(tx.id)}</a>
+                    <a target="_blank" href={`https://etherscan.io/tx/${tx.transactionId}`}> {shortenText(tx.id)}</a>
                 </TableCell>
+
             </TableRow>
-        ))}
+        )
+        )}
     </>
 }
 
 function Row(props) {
     const { row, loadMoreInfo } = props;
     const [open, setOpen] = React.useState(false);
+    const [totalSwapedOut, setTotalSwapedOut] = React.useState();
+    const [totalSwapedIn, setTotalSwapedIn] = React.useState();
+
+
+    if (row.id === "0x372ff5596561b1135bb8742c0abf1fb52fea819e") {
+        console.log("Row ", row)
+    }
+
+    React.useEffect(() => {
+        if (row.swaps.length) {
+            const totalOut = calculateTotalSwapOut(row.swaps)
+            setTotalSwapedOut(totalOut.toString())
+
+            const totalIn = calculateTotalSwapIn(row.swaps)
+            setTotalSwapedIn(totalIn.toString())
+        }
+    }, [row.swaps])
 
     return (
         <React.Fragment>
@@ -141,7 +161,7 @@ function Row(props) {
                                 History
                             </Typography>
 
-                            <Table size="small" aria-label="purchases">
+                            <Table size="small">
                                 <TableHead>
                                     <TableRow>
                                         <TableCell>Type</TableCell>
@@ -158,26 +178,35 @@ function Row(props) {
                             <Button onClick={() => loadMoreInfo(row.id)} variant="contained">
                                 Load more info
                             </Button>
-                            {row.swaps.length &&
-                                <div>{JSON.stringify(row.swaps)}</div>
-                                /*                                 <Table size="small" aria-label="purchases">
-                                                                    <TableHead>
-                                                                        <TableRow>
-                                                                            <TableCell>Type</TableCell>
-                                                                            <TableCell align="right">From</TableCell>
-                                                                            <TableCell align="right">Token In</TableCell>
-                                                                            <TableCell align="right">Amount In</TableCell>
-                                                                            <TableCell align="right">Token Out</TableCell>
-                                                                            <TableCell align="right">Amount Out</TableCell>
-                                                                            <TableCell align="right">Price</TableCell>
-                                                                            <TableCell align="right">Amount USD</TableCell>
-                                                                            <TableCell align="right">Transaction</TableCell>
-                                                                        </TableRow>
-                                                                    </TableHead>
-                                                                    <TableBody>
-                                                                        <SwapTable rows={row.swaps} />
-                                                                    </TableBody>
-                                                                </Table> */
+                            {row.swaps.length ?
+                                <Box sx={{ margin: 1 }}>
+                                    <Typography variant="h6" gutterBottom component="div">
+                                        Total Swapped Out {totalSwapedOut} {row.realToken}
+                                    </Typography>
+                                    <Typography variant="h6" gutterBottom component="div">
+                                        Total Swapped In {totalSwapedIn} {row.realToken}
+                                    </Typography>
+
+                                    <Table size="small">
+                                        <TableHead>
+                                            <TableRow>
+                                                <TableCell>Type</TableCell>
+                                                <TableCell align="right">From</TableCell>
+                                                <TableCell align="right">Token In</TableCell>
+                                                <TableCell align="right">Amount In</TableCell>
+                                                <TableCell align="right">Token Out</TableCell>
+                                                <TableCell align="right">Amount Out</TableCell>
+                                                <TableCell align="right">Price</TableCell>
+                                                <TableCell align="right">Amount USD</TableCell>
+                                                <TableCell align="right">Transaction</TableCell>
+                                            </TableRow>
+                                        </TableHead>
+                                        <TableBody>
+                                            <SwapTable rows={row.swaps} />
+                                        </TableBody>
+                                    </Table>
+                                </Box>
+                                : null
                             }
                         </Box>
                     </Collapse>
@@ -389,6 +418,7 @@ export default function EnhancedTable() {
     const [daysLoaded, setDaysLoaded] = React.useState([]);
     const [loadFromDB, setLoadFromDB] = React.useState(false);
     const [showOnGoing, setShowOnGoing] = React.useState(false);
+    const [allSwaps, setAllSwaps] = React.useState([]);
 
     const load = React.useCallback(async () => {
         const from = date.startOf('day').utc().unix();
@@ -401,19 +431,14 @@ export default function EnhancedTable() {
             setDaysLoaded([...daysLoaded, dateToLog])
             setRows(rowsLoaded)
             setRowsToShow(rowsLoaded)
-
         }
-
         setLoadingPairs(null)
     }, [date]);
 
     const loadMoreInfo = React.useCallback(async (pair) => {
-        console.log('loadMoreInfo  useCallback pair', pair)
         const swaps = await loadMoreInfoPair(pair);
-        console.log('loadMoreInfo  useCallback swaps', swaps)
         const pairsWithSwap = rows.map(row => {
             if (row.id === pair) {
-                console.log('pair found', pair)
                 row.swaps = swaps;
             }
             return row
@@ -429,10 +454,13 @@ export default function EnhancedTable() {
         // declare the data fetching function
         const fetchRowsStored = async () => {
             const rowsLoaded = await readAllRecordsFromLocalStorageByPrefix(getPairPrefix());
+            const swapsLoaded = await readAllRecordsFromLocalStorageByPrefix(getSwapPrefix());
+            console.log('swapsLoaded', swapsLoaded)
             let daysLoaded = await getDaysLoaded();
             setDaysLoaded(daysLoaded)
             setRows(rowsLoaded)
             setRowsToShow(rowsLoaded)
+            setAllSwaps(swapsLoaded)
         }
 
         // call the function
@@ -441,7 +469,18 @@ export default function EnhancedTable() {
     }, [loadFromDB])
 
     React.useEffect(() => {
-        // declare the data fetching function
+        console.log('useEffect that adds all swaps', allSwaps)
+
+        const rowsWithSwaps = rows.map(row => {
+            const swaps = allSwaps.filter(swap => swap.pairId === row.id)
+            row.swaps = swaps;
+            return row
+        })
+        setRows(rowsWithSwaps)
+    }, [allSwaps])
+
+    React.useEffect(() => {
+        console.log('useEffect that filters to show')
         let newRowsToShowOnGoing = rows.filter(r => {
             if (showOnGoing) {
                 return true
@@ -483,8 +522,6 @@ export default function EnhancedTable() {
     // Avoid a layout jump when reaching the last page with empty rows.
     const emptyRows =
         page > 0 ? Math.max(0, (1 + page) * rowsPerPage - rowsToShow.length) : 0;
-
-    console.log(rowsToShow)
 
     return (
         <Box sx={{ width: '100%' }}>

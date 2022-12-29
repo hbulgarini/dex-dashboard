@@ -188,9 +188,9 @@ const loadData = async (from, to, dateToLog) => {
 
     const getSymbolAndAddress = (pair, desiredSymbols) => {
         if (desiredSymbols.includes(pair.token0.symbol)) {
-            return { symbol: pair.token1.symbol, tokenAddress: pair.token1.id }
+            return { symbol: pair.token1.symbol, tokenAddress: pair.token1.id, realToken: pair.token0.symbol }
         }
-        return { symbol: pair.token0.symbol, tokenAddress: pair.token0.id }
+        return { symbol: pair.token0.symbol, tokenAddress: pair.token0.id, realToken: pair.token1.symbol }
     }
 
     const getTotalAmount = (pair, data, desiredSymbols) =>
@@ -235,7 +235,7 @@ const loadData = async (from, to, dateToLog) => {
     const desiredSymbols = ["WETH", "USDC", "DAI"];
     const records = pairs.map(pair => {
         let info = {};
-        const { symbol, tokenAddress } = getSymbolAndAddress(pair, desiredSymbols)
+        const { symbol, tokenAddress, realToken } = getSymbolAndAddress(pair, desiredSymbols)
         info.id = pair.id;
         info.token0 = pair.token0.symbol
         info.token1 = pair.token1.symbol
@@ -243,6 +243,7 @@ const loadData = async (from, to, dateToLog) => {
         info.pairInfo = `${pair.token0.symbol}/${pair.token1.symbol}`
         info.tokenAddress = tokenAddress;
         info.symbol = symbol;
+        info.realToken = realToken;
 
 
         const date = new Date(pair.createdAtTimestamp * 1000);
