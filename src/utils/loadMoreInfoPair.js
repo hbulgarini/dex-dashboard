@@ -11,17 +11,17 @@ const provider = new ethers.providers.AlchemyProvider('mainnet', '47IFQ3H-2v6lpf
 async function getDetailsFromAPI(transactionHash) {
     const receipt = await provider.getTransactionReceipt(transactionHash);
 
-    // Return the transaction details
     return {
         from: receipt.from,
         to: receipt.to,
         value: receipt.value,
         contractAddress: receipt.contractAddress,
-        status: receipt.status
+        status: receipt.status,
+        gasUsed: ethers.utils.formatEther(receipt.gasUsed)
     };
 }
 
-const loadMoreInfoPair = async (pairId) => {
+const loadMoreInfoPair = async (pair) => {
     const getSwaps = async () => {
         let time = 0;
         let records = 1;
@@ -41,7 +41,7 @@ const loadMoreInfoPair = async (pairId) => {
                     first: 1000,
                     skip: ${skip},
                     orderBy: timestamp, orderDirection: desc, where:
-                    { pair: "${pairId}" }
+                    { pair: "${pair.id}" }
                    ) {
                     id
                     pair {
@@ -81,7 +81,6 @@ const loadMoreInfoPair = async (pairId) => {
             });
 
             const data = (await querySwaps.json()).data.swaps
-            console.log('data', data)
             time++;
             if (records > 0) {
                 records = data.length
@@ -161,7 +160,7 @@ const loadMoreInfoPair = async (pairId) => {
         let info = {};
         const { symbol, tokenAddress } = getSymbolAndAddress(swap, desiredSymbols)
         info.id = swap.id;
-        info.pairId = pairId;
+        info.pairId = pair.id;
         info.token0 = swap.pair.token0.symbol
         info.token1 = swap.pair.token1.symbol
         info.amountUSD = getFormattedValues(swap.amountUSD);
@@ -182,18 +181,34 @@ const loadMoreInfoPair = async (pairId) => {
         const date = new Date(swap.timestamp * 1000);
         info.created = date.toUTCString();
 
-        const { from, status } = await getDetailsFromAPI(info.transactionId)
+        const { from, status, gasUsed } = await getDetailsFromAPI(info.transactionId)
         info.from = from;
-        info.status = status
+        info.status = status ? 'OK' : 'FAILED'
+        info.gasUsed = gasUsed
         return info
     })
 
     const records = await Promise.all(promises)
 
-    const allRecords = await readAllRecordsFromLocalStorageByPrefix(getSwapPrefix());
-    const newRecords = await saveRecordsToLocalStorage(pairId, records, getSwapPrefix())
+    const mintPromises = pair.mints.map(async mint => {
+        const { from, status, gasUsed } = await getDetailsFromAPI(mint.transaction.id);
+        const newMint = { ...mint, from, status, gasUsed }
+        return newMint;
+    })
 
-    return [...records, ...allRecords]
+    const burnPromises = pair.mints.map(async burn => {
+        const { from, status, gasUsed } = await getDetailsFromAPI(burn.transaction.id);
+        const newBurn = { ...burn, from, status, gasUsed }
+        return newBurn;
+    })
+
+    const mints = await Promise.all(mintPromises);
+    const burns = await Promise.all(burnPromises);
+
+    const allRecords = await readAllRecordsFromLocalStorageByPrefix(getSwapPrefix());
+    const newRecords = await saveRecordsToLocalStorage(pair.id, records, getSwapPrefix())
+
+    return { swaps: [...records, ...allRecords], mints, burns }
 }
 
 
@@ -214,7 +229,30 @@ const calculateTotalSwapIn = (data) =>
         return total
     }, new Decimal(0));
 
-export { loadMoreInfoPair, calculateTotalSwapOut, calculateTotalSwapIn };
+const calculateAllGasUsed = (data) => {
+    const total = data.reduce((total, obj) => {
+        return total.plus(new Decimal(obj.gasUsed));
+    }, new Decimal(0));
+    return total.toFixed()
+}
+
+function getNameFromAddressBook(addressesBook, address) {
+    // Iterate over the addresses in the addressesBook array
+    for (const addr of addressesBook.addresses) {
+        // Check if the current address matches the address provided as an argument
+        if (addr.address === address) {
+            // Return the name of the address if it matches
+            return addr.name;
+        }
+    }
+
+    // Return the address if it was not found in the addressesBook array
+    return address;
+}
+
+
+
+export { loadMoreInfoPair, calculateTotalSwapOut, calculateTotalSwapIn, calculateAllGasUsed, getNameFromAddressBook };
 
 
 

@@ -19,7 +19,6 @@ async function saveRecordsToLocalStorage(id, records, prefix, dateToLog) {
 
 async function readPairsIdsFromLocalStorage(prefix) {
     const keys = await localforage.keys();
-    console.log('keys', keys)
     const ids = keys.filter(key => key.startsWith(prefix));
     return ids
 }

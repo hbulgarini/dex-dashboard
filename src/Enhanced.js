@@ -1,6 +1,6 @@
 import * as React from 'react';
 import loadData from './utils/loadData';
-import { loadMoreInfoPair, calculateTotalSwapOut, calculateTotalSwapIn } from './utils/loadMoreInfoPair'
+import { loadMoreInfoPair, calculateTotalSwapOut, calculateTotalSwapIn, calculateAllGasUsed, getNameFromAddressBook } from './utils/loadMoreInfoPair'
 import { readAllRecordsFromLocalStorageByPrefix, getDaysLoaded, exportRecords, getPairPrefix, getSwapPrefix } from './utils/localStorageManager'
 import moment from 'moment'
 import { sortBy } from 'lodash'
@@ -35,6 +35,9 @@ import CircularProgress from '@mui/material/CircularProgress';
 import FileUploader from './FileUploader'
 import { visuallyHidden } from '@mui/utils';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { MinorCrashOutlined } from '@mui/icons-material';
+import AddressBook from './AddressBook';
+import Swaps from './Swaps'
 
 function shortenText(text) {
     if (text.length <= 10) {
@@ -56,6 +59,9 @@ function AddRemoveLiquidityTable(props) {
                 <TableCell align="right">
                     <a target="_blank" href={`https://etherscan.io/tx/${tx.transaction.id}`}> {shortenText(tx.transaction.id)}</a>
                 </TableCell>
+                <TableCell align="right">{tx.from ? shortenText(tx.from) : ""}</TableCell>
+                <TableCell align="right">{tx.status ? tx.status : ""}</TableCell>
+                <TableCell align="right">{tx.gasUsed ? tx.gasUsed : ""}</TableCell>
             </TableRow>
         ))}
     </>
@@ -63,17 +69,18 @@ function AddRemoveLiquidityTable(props) {
 
 
 function SwapTable(props) {
-    const { rows } = props;
-    console.log('rows', rows)
+    const { rows: { swaps }, addresses } = props;
     return <>
-        {rows.map((tx) => (
+        {/*         {swaps.map((tx) => (
             <TableRow key={`${tx.id}${Math.random()}`}>
                 <TableCell component="th" scope="row">
                     <Chip label={tx.type} color={tx.type === "IN" ? "primary" : "error"} variant="outlined" />
                 </TableCell>
                 <TableCell align="right">
-                    <a target="_blank" href={`https://etherscan.io/account/${tx.from}`}> {shortenText(tx.from)}</a>
+                    <a target="_blank" href={`https://etherscan.io/address/${tx.from}`}> {getNameFromAddressBook(addresses, tx.from)}</a>
                 </TableCell>
+                <TableCell align="right">{tx.gasUsed}</TableCell>
+                <TableCell align="right">{tx.status}</TableCell>
                 <TableCell align="right">{tx.tokenIn.symbol}</TableCell>
                 <TableCell align="right">{tx.amountIn}</TableCell>
                 <TableCell align="right">{tx.tokenOut.symbol}</TableCell>
@@ -86,20 +93,18 @@ function SwapTable(props) {
 
             </TableRow>
         )
-        )}
+        )} */}
+        <Swaps swaps={swaps} addresses={addresses} />
     </>
 }
 
 function Row(props) {
-    const { row, loadMoreInfo } = props;
+    const { row, loadMoreInfo, addresses } = props;
     const [open, setOpen] = React.useState(false);
     const [totalSwapedOut, setTotalSwapedOut] = React.useState();
     const [totalSwapedIn, setTotalSwapedIn] = React.useState();
+    const [totalGasUsed, setTotalGasUsed] = React.useState();
 
-
-    if (row.id === "0x372ff5596561b1135bb8742c0abf1fb52fea819e") {
-        console.log("Row ", row)
-    }
 
     React.useEffect(() => {
         if (row.swaps.length) {
@@ -108,6 +113,10 @@ function Row(props) {
 
             const totalIn = calculateTotalSwapIn(row.swaps)
             setTotalSwapedIn(totalIn.toString())
+
+            const totalGas = calculateAllGasUsed(row.swaps)
+            setTotalGasUsed(totalGas.toString())
+
         }
     }, [row.swaps])
 
@@ -168,6 +177,9 @@ function Row(props) {
                                         <TableCell align="right">Amount 0</TableCell>
                                         <TableCell align="right">Amount 1</TableCell>
                                         <TableCell align="right">Transaction ID</TableCell>
+                                        <TableCell align="right">From</TableCell>
+                                        <TableCell align="right">Status</TableCell>
+                                        <TableCell align="right">Gas Used</TableCell>
                                     </TableRow>
                                 </TableHead>
                                 <TableBody>
@@ -175,38 +187,46 @@ function Row(props) {
                                     <AddRemoveLiquidityTable rows={row.burns} action="Remove" />
                                 </TableBody>
                             </Table>
-                            <Button onClick={() => loadMoreInfo(row.id)} variant="contained">
+                            <Button onClick={() => loadMoreInfo(row)} variant="contained">
                                 Load more info
                             </Button>
                             {row.swaps.length ?
-                                <Box sx={{ margin: 1 }}>
-                                    <Typography variant="h6" gutterBottom component="div">
-                                        Total Swapped Out {totalSwapedOut} {row.realToken}
-                                    </Typography>
-                                    <Typography variant="h6" gutterBottom component="div">
-                                        Total Swapped In {totalSwapedIn} {row.realToken}
-                                    </Typography>
-
-                                    <Table size="small">
-                                        <TableHead>
-                                            <TableRow>
-                                                <TableCell>Type</TableCell>
-                                                <TableCell align="right">From</TableCell>
-                                                <TableCell align="right">Token In</TableCell>
-                                                <TableCell align="right">Amount In</TableCell>
-                                                <TableCell align="right">Token Out</TableCell>
-                                                <TableCell align="right">Amount Out</TableCell>
-                                                <TableCell align="right">Price</TableCell>
-                                                <TableCell align="right">Amount USD</TableCell>
-                                                <TableCell align="right">Transaction</TableCell>
-                                            </TableRow>
-                                        </TableHead>
-                                        <TableBody>
-                                            <SwapTable rows={row.swaps} />
-                                        </TableBody>
-                                    </Table>
-                                </Box>
+                                /*        <Box sx={{ margin: 1 }}>
+                                           <Typography variant="h6" gutterBottom component="div">
+                                               Total Swapped Out {totalSwapedOut} {row.realToken}
+                                           </Typography>
+                                           <Typography variant="h6" gutterBottom component="div">
+                                               Total Swapped In {totalSwapedIn} {row.realToken}
+                                           </Typography>
+                                           <Typography variant="h6" gutterBottom component="div">
+                                               Total gas used: {totalGasUsed} ETH
+                                           </Typography>
+       
+       
+                                           <Table size="small">
+                                               <TableHead>
+                                                   <TableRow>
+                                                       <TableCell>Type</TableCell>
+                                                       <TableCell align="right">From</TableCell>
+                                                       <TableCell align="right">gasUsed</TableCell>
+                                                       <TableCell align="right">Status</TableCell>
+                                                       <TableCell align="right">Token In</TableCell>
+                                                       <TableCell align="right">Amount In</TableCell>
+                                                       <TableCell align="right">Token Out</TableCell>
+                                                       <TableCell align="right">Amount Out</TableCell>
+                                                       <TableCell align="right">Price</TableCell>
+                                                       <TableCell align="right">Amount USD</TableCell>
+                                                       <TableCell align="right">Transaction</TableCell>
+                                                   </TableRow>
+                                               </TableHead>
+                                               <TableBody>
+                                                   <SwapTable rows={row} addresses={props.addresses} />
+                                               </TableBody>
+                                           </Table>
+                                       </Box> */
+                                <Swaps swaps={row.swaps} addresses={addresses} />
                                 : null
+
                             }
                         </Box>
                     </Collapse>
@@ -367,37 +387,44 @@ EnhancedTableHead.propTypes = {
 
 function EnhancedTableToolbar(props) {
     return (
-
-        <Toolbar
-            sx={{
-                pl: { sm: 2 },
-                pr: { xs: 1, sm: 1 },
-            }}
-        >
-
-            <Typography>
-                Show Ongoing
-            </Typography>
-            <Switch onChange={props.handleShowOnGoing} label="Show Ongoing" />
-            <Typography
-                sx={{ flex: '1 1 100%' }}
-                variant="h6"
-                id="tableTitle"
-                component="div"
+        <>
+            <Toolbar
+                sx={{
+                    pl: { sm: 2 },
+                    pr: { xs: 1, sm: 1 },
+                }}
             >
-                {props.loadingPairs ? <>
-                    <CircularProgress />
-                    {props.loadingPairs}
-                </> : null}
-            </Typography>
+
+                <Typography>
+                    Show Ongoing
+                </Typography>
+                <Switch onChange={props.handleShowOnGoing} label="Show Ongoing" />
+                <Typography
+                    sx={{ flex: '1 1 100%' }}
+                    variant="h6"
+                    id="tableTitle"
+                    component="div"
+                >
+                    {props.loadingPairs ? <>
+                        <CircularProgress />
+                        {props.loadingPairs}
+                    </> : null}
+                </Typography>
 
 
-            <Tooltip title="Filter list">
-                <IconButton>
-                    <FilterListIcon />
-                </IconButton>
-            </Tooltip>
-        </Toolbar>
+                <Tooltip title="Filter list">
+                    <IconButton>
+                        <FilterListIcon />
+                    </IconButton>
+                </Tooltip>
+            </Toolbar>
+            <Toolbar>
+                <div style={{ 'width': '80%' }}>
+                    <AddressBook setAddresses={props.setAddresses} addresses={props.addresses} />
+                </div>
+            </Toolbar>
+        </>
+
     );
 }
 
@@ -419,6 +446,7 @@ export default function EnhancedTable() {
     const [loadFromDB, setLoadFromDB] = React.useState(false);
     const [showOnGoing, setShowOnGoing] = React.useState(false);
     const [allSwaps, setAllSwaps] = React.useState([]);
+    const [addresses, setAddresses] = React.useState([]);
 
     const load = React.useCallback(async () => {
         const from = date.startOf('day').utc().unix();
@@ -436,14 +464,16 @@ export default function EnhancedTable() {
     }, [date]);
 
     const loadMoreInfo = React.useCallback(async (pair) => {
-        const swaps = await loadMoreInfoPair(pair);
-        const pairsWithSwap = rows.map(row => {
-            if (row.id === pair) {
+        const { swaps, mints, burns } = await loadMoreInfoPair(pair);
+        const newPairs = rows.map(row => {
+            if (row.id === pair.id) {
                 row.swaps = swaps;
+                row.mints = mints;
+                row.burns = burns;
             }
             return row
         })
-        setRows(pairsWithSwap)
+        setRows(newPairs)
     }, [rows])
 
     const download = React.useCallback(async () => {
@@ -455,7 +485,6 @@ export default function EnhancedTable() {
         const fetchRowsStored = async () => {
             const rowsLoaded = await readAllRecordsFromLocalStorageByPrefix(getPairPrefix());
             const swapsLoaded = await readAllRecordsFromLocalStorageByPrefix(getSwapPrefix());
-            console.log('swapsLoaded', swapsLoaded)
             let daysLoaded = await getDaysLoaded();
             setDaysLoaded(daysLoaded)
             setRows(rowsLoaded)
@@ -469,8 +498,6 @@ export default function EnhancedTable() {
     }, [loadFromDB])
 
     React.useEffect(() => {
-        console.log('useEffect that adds all swaps', allSwaps)
-
         const rowsWithSwaps = rows.map(row => {
             const swaps = allSwaps.filter(swap => swap.pairId === row.id)
             row.swaps = swaps;
@@ -480,7 +507,6 @@ export default function EnhancedTable() {
     }, [allSwaps])
 
     React.useEffect(() => {
-        console.log('useEffect that filters to show')
         let newRowsToShowOnGoing = rows.filter(r => {
             if (showOnGoing) {
                 return true
@@ -555,7 +581,7 @@ export default function EnhancedTable() {
             <Typography style={{ 'color': "#000" }}>{daysLoaded.join(", ")}</Typography>
 
             <Paper sx={{ width: '100%', mb: 2 }}>
-                <EnhancedTableToolbar loadingPairs={loadingPairs} handleShowOnGoing={handleShowOnGoing} />
+                <EnhancedTableToolbar loadingPairs={loadingPairs} handleShowOnGoing={handleShowOnGoing} setAddresses={setAddresses} addresses={addresses} />
                 <Typography
                     sx={{ flex: '1 1 100%' }}
                     variant="h6"
@@ -583,7 +609,7 @@ export default function EnhancedTable() {
 
                                     const labelId = `enhanced-table-checkbox-${index}`;
                                     return (
-                                        <Row key={row.id} row={row} loadMoreInfo={loadMoreInfo} />
+                                        <Row key={row.id} row={row} loadMoreInfo={loadMoreInfo} addresses={addresses} />
                                     );
                                 })}
                             {emptyRows > 0 && (
