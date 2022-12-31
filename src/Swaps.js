@@ -13,12 +13,16 @@ function shortenText(text) {
 
 const columns = [
     {
-        field: 'type', headerName: 'Type', width: 120,
+        field: 'type', headerName: 'Type', width: 60, resizable: true,
         renderCell: ({ row }) => <Chip label={row.type} color={row.type === "IN" ? "primary" : "error"} variant="outlined" />
 
     },
+    {
+        field: 'created', headerName: 'Date', width: 250,
+
+    },
     { field: 'from', headerName: 'From', width: 130, renderCell: ({ row }) => <a target="_blank" href={`https://etherscan.io/address/${row.from}`}> {getNameFromAddressBook(row.addresses, row.from)}</a> },
-    { field: 'gasUsed', headerName: 'Gas Used', width: 130 },
+    { field: 'gasUsed', headerName: 'Gas Used', width: 200 },
     {
         field: 'status',
         headerName: 'Status',
@@ -27,13 +31,13 @@ const columns = [
     {
         field: 'tokenIn',
         headerName: 'Token In',
-        width: 120,
+        width: 100,
         valueGetter: ({ row }) => `${row.tokenIn.symbol}`
     },
     {
         field: 'amountIn',
         headerName: 'Amount In',
-        width: 120,
+        width: 200,
     },
     {
         field: 'tokenOut',
@@ -44,40 +48,36 @@ const columns = [
     {
         field: 'amountOut',
         headerName: 'Amount Out',
-        width: 120,
+        width: 250,
     },
     {
         field: 'price',
         headerName: 'Price',
-        width: 120,
+        width: 200,
     },
     {
         field: 'amountUSD',
         type: 'number',
         headerName: 'Amount USD',
-        width: 120,
+        width: 100,
     },
     {
         field: 'transactionId',
         headerName: 'Transaction Id',
-        width: 120,
+        width: 250,
         renderCell: ({ row }) => <a target="_blank" href={`https://etherscan.io/tx/${row.transactionId}`}> {shortenText(row.id)}</a>
     },
 ];
 
 export default function Swaps({ swaps, addresses }) {
-    console.log('addresses', addresses)
-    const addressBook = addresses.length ? addresses.addresses : { addresses: [] }
-    console.log('addressBook', addressBook)
-    const swapsWithAddressBook = swaps.map(swap => ({ ...swap, addressBook }))
+    const swapsWithAddressBook = swaps.map(swap => ({ ...swap, addresses }))
     return (
-        <div style={{ height: 800, width: '100%' }}>
+        <div style={{ height: 800, width: 2000 }}>
             <DataGrid
                 rows={swapsWithAddressBook}
                 columns={columns}
-                pageSize={5}
-                rowsPerPageOptions={[5]}
-                checkboxSelection
+                pageSize={25}
+                rowsPerPageOptions={[25]}
             />
         </div>
     );

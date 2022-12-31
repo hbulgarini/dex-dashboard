@@ -1,7 +1,7 @@
 import * as React from 'react';
 import loadData from './utils/loadData';
 import { loadMoreInfoPair, calculateTotalSwapOut, calculateTotalSwapIn, calculateAllGasUsed, getNameFromAddressBook } from './utils/loadMoreInfoPair'
-import { readAllRecordsFromLocalStorageByPrefix, getDaysLoaded, exportRecords, getPairPrefix, getSwapPrefix } from './utils/localStorageManager'
+import { readAllRecordsFromLocalStorageByPrefix, getDaysLoaded, exportRecords, getPairPrefix, getSwapPrefix, getAddreessBookPrefix } from './utils/localStorageManager'
 import moment from 'moment'
 import { sortBy } from 'lodash'
 import Button from '@mui/material/Button';
@@ -47,7 +47,7 @@ function shortenText(text) {
 }
 
 function AddRemoveLiquidityTable(props) {
-    const { rows, action } = props;
+    const { rows, action, addresses } = props;
     return <>
         {rows.map((tx) => (
             <TableRow key={tx.transaction.id}>
@@ -59,7 +59,11 @@ function AddRemoveLiquidityTable(props) {
                 <TableCell align="right">
                     <a target="_blank" href={`https://etherscan.io/tx/${tx.transaction.id}`}> {shortenText(tx.transaction.id)}</a>
                 </TableCell>
-                <TableCell align="right">{tx.from ? shortenText(tx.from) : ""}</TableCell>
+                <TableCell align="right">
+                    {tx.from ?
+                        <a target="_blank" href={`https://etherscan.io/address/${tx.from}`}> {getNameFromAddressBook(addresses, tx.from)}</a>
+                        : ""}
+                </TableCell>
                 <TableCell align="right">{tx.status ? tx.status : ""}</TableCell>
                 <TableCell align="right">{tx.gasUsed ? tx.gasUsed : ""}</TableCell>
             </TableRow>
@@ -67,44 +71,12 @@ function AddRemoveLiquidityTable(props) {
     </>
 }
 
-
-function SwapTable(props) {
-    const { rows: { swaps }, addresses } = props;
-    return <>
-        {/*         {swaps.map((tx) => (
-            <TableRow key={`${tx.id}${Math.random()}`}>
-                <TableCell component="th" scope="row">
-                    <Chip label={tx.type} color={tx.type === "IN" ? "primary" : "error"} variant="outlined" />
-                </TableCell>
-                <TableCell align="right">
-                    <a target="_blank" href={`https://etherscan.io/address/${tx.from}`}> {getNameFromAddressBook(addresses, tx.from)}</a>
-                </TableCell>
-                <TableCell align="right">{tx.gasUsed}</TableCell>
-                <TableCell align="right">{tx.status}</TableCell>
-                <TableCell align="right">{tx.tokenIn.symbol}</TableCell>
-                <TableCell align="right">{tx.amountIn}</TableCell>
-                <TableCell align="right">{tx.tokenOut.symbol}</TableCell>
-                <TableCell align="right">{tx.amountOut}</TableCell>
-                <TableCell align="right">{tx.price}</TableCell>
-                <TableCell align="right">{tx.amountUSD}</TableCell>
-                <TableCell align="right">
-                    <a target="_blank" href={`https://etherscan.io/tx/${tx.transactionId}`}> {shortenText(tx.id)}</a>
-                </TableCell>
-
-            </TableRow>
-        )
-        )} */}
-        <Swaps swaps={swaps} addresses={addresses} />
-    </>
-}
-
 function Row(props) {
-    const { row, loadMoreInfo, addresses } = props;
+    const { row, loadMoreInfo, addresses, loadingSwaps } = props;
     const [open, setOpen] = React.useState(false);
     const [totalSwapedOut, setTotalSwapedOut] = React.useState();
     const [totalSwapedIn, setTotalSwapedIn] = React.useState();
     const [totalGasUsed, setTotalGasUsed] = React.useState();
-
 
     React.useEffect(() => {
         if (row.swaps.length) {
@@ -140,7 +112,7 @@ function Row(props) {
                     </>
 
                 </TableCell>
-                <TableCell align="right">{row.id}</TableCell>
+                <TableCell align="right">{shortenText(row.id)}</TableCell>
                 <TableCell align="right">{row.created}</TableCell>
                 <TableCell align="right">{row.token0}</TableCell>
                 <TableCell align="right">{row.token1}</TableCell>
@@ -167,7 +139,7 @@ function Row(props) {
                     <Collapse in={open} timeout="auto" unmountOnExit>
                         <Box sx={{ margin: 1 }}>
                             <Typography variant="h6" gutterBottom component="div">
-                                History
+                                Add / Remove liquidity
                             </Typography>
 
                             <Table size="small">
@@ -183,52 +155,33 @@ function Row(props) {
                                     </TableRow>
                                 </TableHead>
                                 <TableBody>
-                                    <AddRemoveLiquidityTable rows={row.mints} action="Add" />
-                                    <AddRemoveLiquidityTable rows={row.burns} action="Remove" />
+                                    <AddRemoveLiquidityTable rows={row.mints} action="Add" addresses={addresses} />
+                                    <AddRemoveLiquidityTable rows={row.burns} action="Remove" addresses={addresses} />
                                 </TableBody>
                             </Table>
                             <Button onClick={() => loadMoreInfo(row)} variant="contained">
                                 Load more info
                             </Button>
-                            {row.swaps.length ?
-                                /*        <Box sx={{ margin: 1 }}>
-                                           <Typography variant="h6" gutterBottom component="div">
-                                               Total Swapped Out {totalSwapedOut} {row.realToken}
-                                           </Typography>
-                                           <Typography variant="h6" gutterBottom component="div">
-                                               Total Swapped In {totalSwapedIn} {row.realToken}
-                                           </Typography>
-                                           <Typography variant="h6" gutterBottom component="div">
-                                               Total gas used: {totalGasUsed} ETH
-                                           </Typography>
-       
-       
-                                           <Table size="small">
-                                               <TableHead>
-                                                   <TableRow>
-                                                       <TableCell>Type</TableCell>
-                                                       <TableCell align="right">From</TableCell>
-                                                       <TableCell align="right">gasUsed</TableCell>
-                                                       <TableCell align="right">Status</TableCell>
-                                                       <TableCell align="right">Token In</TableCell>
-                                                       <TableCell align="right">Amount In</TableCell>
-                                                       <TableCell align="right">Token Out</TableCell>
-                                                       <TableCell align="right">Amount Out</TableCell>
-                                                       <TableCell align="right">Price</TableCell>
-                                                       <TableCell align="right">Amount USD</TableCell>
-                                                       <TableCell align="right">Transaction</TableCell>
-                                                   </TableRow>
-                                               </TableHead>
-                                               <TableBody>
-                                                   <SwapTable rows={row} addresses={props.addresses} />
-                                               </TableBody>
-                                           </Table>
-                                       </Box> */
-                                <Swaps swaps={row.swaps} addresses={addresses} />
-                                : null
-
+                            {
+                                loadingSwaps ? <CircularProgress /> : null
                             }
-                        </Box>
+                            {row.swaps.length ?
+                                <Box sx={{ margin: 1 }}>
+                                    <Typography variant="h6" gutterBottom component="div">
+                                        Total Swapped Out {totalSwapedOut} {row.realToken}
+                                    </Typography>
+                                    <Typography variant="h6" gutterBottom component="div">
+                                        Total Swapped In {totalSwapedIn} {row.realToken}
+                                    </Typography>
+                                    <Typography variant="h6" gutterBottom component="div">
+                                        Total gas used: {totalGasUsed} ETH
+                                    </Typography>
+
+                                    <Swaps swaps={row.swaps} addresses={addresses} />
+                                </Box >
+                                : null
+                            }
+                        </Box >
                     </Collapse>
                 </TableCell>
             </TableRow>}
@@ -252,20 +205,9 @@ function getComparator(order, orderBy) {
         : (a, b) => -descendingComparator(a, b, orderBy);
 }
 
-// Since 2020 all major browsers ensure sort stability with Array.prototype.sort().
-// stableSort() brings sort stability to non-modern browsers (notably IE11). If you
-// only support modern browsers you can replace stableSort(exampleArray, exampleComparator)
-// with exampleArray.slice().sort(exampleComparator)
 function stableSort(array, comparator) {
-    const stabilizedThis = array.map((el, index) => [el, index]);
-    stabilizedThis.sort((a, b) => {
-        const order = comparator(a[0], b[0]);
-        if (order !== 0) {
-            return order;
-        }
-        return a[1] - b[1];
-    });
-    return stabilizedThis.map((el) => el[0]);
+    // Use the built-in sort method with the provided comparator function
+    return array.slice().sort(comparator);
 }
 
 
@@ -420,7 +362,7 @@ function EnhancedTableToolbar(props) {
             </Toolbar>
             <Toolbar>
                 <div style={{ 'width': '80%' }}>
-                    <AddressBook setAddresses={props.setAddresses} addresses={props.addresses} />
+                    {props.loadingAddresses ? null : <AddressBook setAddresses={props.setAddresses} addresses={props.addresses} />}
                 </div>
             </Toolbar>
         </>
@@ -446,7 +388,9 @@ export default function EnhancedTable() {
     const [loadFromDB, setLoadFromDB] = React.useState(false);
     const [showOnGoing, setShowOnGoing] = React.useState(false);
     const [allSwaps, setAllSwaps] = React.useState([]);
-    const [addresses, setAddresses] = React.useState([]);
+    const [addresses, setAddresses] = React.useState({ addresses: [] });
+    const [loadingSwaps, setLoadingSwaps] = React.useState(false);
+    const [loadingAddresses, setLoadingAddresses] = React.useState(true);
 
     const load = React.useCallback(async () => {
         const from = date.startOf('day').utc().unix();
@@ -464,6 +408,7 @@ export default function EnhancedTable() {
     }, [date]);
 
     const loadMoreInfo = React.useCallback(async (pair) => {
+        setLoadingSwaps(true)
         const { swaps, mints, burns } = await loadMoreInfoPair(pair);
         const newPairs = rows.map(row => {
             if (row.id === pair.id) {
@@ -474,6 +419,7 @@ export default function EnhancedTable() {
             return row
         })
         setRows(newPairs)
+        setLoadingSwaps(false)
     }, [rows])
 
     const download = React.useCallback(async () => {
@@ -485,11 +431,15 @@ export default function EnhancedTable() {
         const fetchRowsStored = async () => {
             const rowsLoaded = await readAllRecordsFromLocalStorageByPrefix(getPairPrefix());
             const swapsLoaded = await readAllRecordsFromLocalStorageByPrefix(getSwapPrefix());
+            const addressBookLoaded = await readAllRecordsFromLocalStorageByPrefix(getAddreessBookPrefix());
+
             let daysLoaded = await getDaysLoaded();
             setDaysLoaded(daysLoaded)
             setRows(rowsLoaded)
             setRowsToShow(rowsLoaded)
             setAllSwaps(swapsLoaded)
+            setAddresses(addressBookLoaded)
+            setLoadingAddresses(false)
         }
 
         // call the function
@@ -581,7 +531,7 @@ export default function EnhancedTable() {
             <Typography style={{ 'color': "#000" }}>{daysLoaded.join(", ")}</Typography>
 
             <Paper sx={{ width: '100%', mb: 2 }}>
-                <EnhancedTableToolbar loadingPairs={loadingPairs} handleShowOnGoing={handleShowOnGoing} setAddresses={setAddresses} addresses={addresses} />
+                <EnhancedTableToolbar loadingPairs={loadingPairs} handleShowOnGoing={handleShowOnGoing} setAddresses={setAddresses} addresses={addresses} loadingAddresses={loadingAddresses} />
                 <Typography
                     sx={{ flex: '1 1 100%' }}
                     variant="h6"
@@ -609,7 +559,7 @@ export default function EnhancedTable() {
 
                                     const labelId = `enhanced-table-checkbox-${index}`;
                                     return (
-                                        <Row key={row.id} row={row} loadMoreInfo={loadMoreInfo} addresses={addresses} />
+                                        <Row key={row.id} row={row} loadMoreInfo={loadMoreInfo} addresses={addresses} loadingSwaps={loadingSwaps} />
                                     );
                                 })}
                             {emptyRows > 0 && (

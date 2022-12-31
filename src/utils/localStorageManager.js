@@ -5,7 +5,7 @@ async function saveRecordsToLocalStorage(id, records, prefix, dateToLog) {
         await localforage.setItem(`${prefix}${id}`, JSON.stringify(records));
         // This code runs once the value has been loaded
         // from the offline store.
-        console.log(`${prefix}${id}} was successfully stored in local storage`)
+        console.log(`${prefix}${id} was successfully stored in local storage`)
         if (dateToLog) {
             let daysLoaded = await getDaysLoaded();
             await localforage.setItem("daysLoaded", JSON.stringify([...daysLoaded, dateToLog]));
@@ -37,10 +37,10 @@ async function idIsRegisteredInLocalStorage(id, prefix) {
 }
 
 const getPairPrefix = () => `PAIRS_`
-const getPairId = (id) => `${getPairPrefix()}${id}`
 
 const getSwapPrefix = () => `SWAPS_`
-const getSwapId = (id) => `${getPairPrefix()}${id}`
+
+const getAddreessBookPrefix = () => `ABOOK_`
 
 async function readAllRecordsFromLocalStorageByPrefix(prefix) {
     const ids = await readPairsIdsFromLocalStorage(prefix);
@@ -85,4 +85,4 @@ async function uploadRecords(records) {
     });
 }
 
-export { saveRecordsToLocalStorage, readPairsIdsFromLocalStorage, idIsRegisteredInLocalStorage, readAllRecordsFromLocalStorageByPrefix, getDaysLoaded, exportRecords, uploadRecords, getSwapPrefix, getPairPrefix };
+export { saveRecordsToLocalStorage, readPairsIdsFromLocalStorage, idIsRegisteredInLocalStorage, readAllRecordsFromLocalStorageByPrefix, getDaysLoaded, exportRecords, uploadRecords, getSwapPrefix, getPairPrefix, getAddreessBookPrefix };

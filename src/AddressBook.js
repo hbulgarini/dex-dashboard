@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { getAddreessBookPrefix, saveRecordsToLocalStorage } from './utils/localStorageManager';
 import arrayMutators from 'final-form-arrays'
 import { Form, Field } from 'react-final-form'
 import { FieldArray } from 'react-final-form-arrays'
@@ -8,23 +9,15 @@ import AccordionDetails from '@mui/material/AccordionDetails';
 import Typography from '@mui/material/Typography';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 
-const sleep = ms => new Promise(resolve => setTimeout(resolve, ms))
-
-
-
-const initialValues = {
-    name: "hola",
-    addresses: [{
-        name: "hhh",
-        address: '0x'
-    }]
-}
-
 export default function AddressBook({ setAddresses, addresses }) {
     const onSubmit = React.useCallback((values) => {
-        console.log("onSubmit", JSON.stringify(values))
-        setAddresses(values)
+        console.log(values)
+        saveRecordsToLocalStorage("addresses", values, getAddreessBookPrefix())
+        setAddresses([values])
     }, [])
+
+
+
     return (
         <div>
             <Accordion>
@@ -41,7 +34,7 @@ export default function AddressBook({ setAddresses, addresses }) {
                         mutators={{
                             ...arrayMutators
                         }}
-                        initialValues={addresses}
+                        initialValues={addresses[0]}
                         render={({
                             handleSubmit,
                             form: {

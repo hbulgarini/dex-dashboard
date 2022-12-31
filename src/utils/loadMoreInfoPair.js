@@ -196,7 +196,7 @@ const loadMoreInfoPair = async (pair) => {
         return newMint;
     })
 
-    const burnPromises = pair.mints.map(async burn => {
+    const burnPromises = pair.burns.map(async burn => {
         const { from, status, gasUsed } = await getDetailsFromAPI(burn.transaction.id);
         const newBurn = { ...burn, from, status, gasUsed }
         return newBurn;
@@ -236,18 +236,28 @@ const calculateAllGasUsed = (data) => {
     return total.toFixed()
 }
 
+function shortenText(text) {
+    if (text.length <= 10) {
+        return text;
+    }
+    return text.substring(0, 5) + "..." + text.substring(text.length - 5);
+}
+
 function getNameFromAddressBook(addressesBook, address) {
-    // Iterate over the addresses in the addressesBook array
-    for (const addr of addressesBook.addresses) {
-        // Check if the current address matches the address provided as an argument
-        if (addr.address === address) {
-            // Return the name of the address if it matches
-            return addr.name;
+    if (addressesBook.length) {
+        for (const addr of addressesBook[0].addresses) {
+            // Check if the current address matches the address provided as an argument
+            if (addr.address === address) {
+                // Return the name of the address if it matches
+                return addr.name;
+            }
         }
     }
+    // Iterate over the addresses in the addressesBook array
+
 
     // Return the address if it was not found in the addressesBook array
-    return address;
+    return shortenText(address);
 }
 
 
