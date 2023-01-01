@@ -5,11 +5,6 @@ const uri = 'https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v2'
 const loadData = async (from, to, dateToLog) => {
     const storageId = `${from}+${to}`
 
-    if (await idIsRegisteredInLocalStorage(storageId, getPairPrefix())) {
-        console.log(`Pair was already stored`)
-        return []
-    }
-
     const getPairs = async () => {
         let time = 0;
         let records = 1;
@@ -276,10 +271,11 @@ const loadData = async (from, to, dateToLog) => {
         return info
     })
 
-    const allRecords = await readAllRecordsFromLocalStorageByPrefix(getPairPrefix());
-    const newRecords = await saveRecordsToLocalStorage(storageId, records, getPairPrefix(), dateToLog)
 
-    return [...records, ...allRecords]
+    const newRecords = await saveRecordsToLocalStorage(storageId, records, getPairPrefix(), dateToLog)
+    const allRecords = await readAllRecordsFromLocalStorageByPrefix(getPairPrefix());
+
+    return allRecords
 }
 
 export default loadData;

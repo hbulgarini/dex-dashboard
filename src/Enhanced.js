@@ -16,7 +16,6 @@ import TableHead from '@mui/material/TableHead';
 import TablePagination from '@mui/material/TablePagination';
 import TableRow from '@mui/material/TableRow';
 import TableSortLabel from '@mui/material/TableSortLabel';
-import TextField from '@mui/material/TextField';
 import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
 import Chip from '@mui/material/Chip';
@@ -26,6 +25,7 @@ import IconButton from '@mui/material/IconButton';
 import Tooltip from '@mui/material/Tooltip';
 import Collapse from '@mui/material/Collapse';
 import FormControlLabel from '@mui/material/FormControlLabel';
+import TextField from '@mui/material/TextField';
 import Switch from '@mui/material/Switch';
 import DeleteIcon from '@mui/icons-material/Delete';
 import FilterListIcon from '@mui/icons-material/FilterList';
@@ -38,6 +38,8 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { MinorCrashOutlined } from '@mui/icons-material';
 import AddressBook from './AddressBook';
 import Swaps from './Swaps'
+import LinkWithClipboard from './LinkWithClipboard'
+import QueryAccountsInTrades from './QueryAccountsInTrades'
 
 function shortenText(text) {
     if (text.length <= 10) {
@@ -61,7 +63,7 @@ function AddRemoveLiquidityTable(props) {
                 </TableCell>
                 <TableCell align="right">
                     {tx.from ?
-                        <a target="_blank" href={`https://etherscan.io/address/${tx.from}`}> {getNameFromAddressBook(addresses, tx.from)}</a>
+                        <LinkWithClipboard value={tx.from} addresses={addresses} />
                         : ""}
                 </TableCell>
                 <TableCell align="right">{tx.status ? tx.status : ""}</TableCell>
@@ -341,6 +343,7 @@ function EnhancedTableToolbar(props) {
                     Show Ongoing
                 </Typography>
                 <Switch onChange={props.handleShowOnGoing} label="Show Ongoing" />
+                <TextField id="outlined-basic" label="Filter" variant="outlined" onChange={(event) => props.setFilter(event.target.value)} />
                 <Typography
                     sx={{ flex: '1 1 100%' }}
                     variant="h6"
@@ -362,9 +365,16 @@ function EnhancedTableToolbar(props) {
             </Toolbar>
             <Toolbar>
                 <div style={{ 'width': '80%' }}>
-                    {props.loadingAddresses ? null : <AddressBook setAddresses={props.setAddresses} addresses={props.addresses} />}
+                    {props.loadingAddresses ? null : <AddressBook setAddresses={props.setAddresses} addresses={props.addresses} setAddressToQuery={props.setAddressToQuery} addressToQuery={props.addressToQuery} />}
                 </div>
             </Toolbar>
+            <Toolbar>
+                <div style={{ 'width': '80%' }}>
+                    <QueryAccountsInTrades addressToQuery={props.addressToQuery} addressBook={props.addresses} allSwaps={props.allSwaps} />
+                </div>
+            </Toolbar>
+
+
         </>
 
     );
@@ -391,6 +401,8 @@ export default function EnhancedTable() {
     const [addresses, setAddresses] = React.useState({ addresses: [] });
     const [loadingSwaps, setLoadingSwaps] = React.useState(false);
     const [loadingAddresses, setLoadingAddresses] = React.useState(true);
+    const [filter, setFilter] = React.useState(null);
+    const [addressToQuery, setAddressToQuery] = React.useState([]);
 
     const load = React.useCallback(async () => {
         const from = date.startOf('day').utc().unix();
@@ -400,7 +412,7 @@ export default function EnhancedTable() {
         const rowsLoaded = await loadData(from, to, dateToLog)
         if (rowsLoaded.length) {
             let daysLoaded = await getDaysLoaded();
-            setDaysLoaded([...daysLoaded, dateToLog])
+            setDaysLoaded(daysLoaded)
             setRows(rowsLoaded)
             setRowsToShow(rowsLoaded)
         }
@@ -410,8 +422,11 @@ export default function EnhancedTable() {
     const loadMoreInfo = React.useCallback(async (pair) => {
         setLoadingSwaps(true)
         const { swaps, mints, burns } = await loadMoreInfoPair(pair);
+        console.log('rows.length', rows.length);
+
         const newPairs = rows.map(row => {
             if (row.id === pair.id) {
+                console.log('pair.id found', pair.id, swaps)
                 row.swaps = swaps;
                 row.mints = mints;
                 row.burns = burns;
@@ -449,7 +464,15 @@ export default function EnhancedTable() {
 
     React.useEffect(() => {
         const rowsWithSwaps = rows.map(row => {
+            if (row.id === "0x2edb12720e3bda73dc813e28ca12e65902090fdd") {
+                console.log(`pair to be found ${row.id}`)
+            }
+
             const swaps = allSwaps.filter(swap => swap.pairId === row.id)
+            if (row.id === "0x2edb12720e3bda73dc813e28ca12e65902090fdd") {
+                console.log(`swaps id and swaps ${row.id}`, swaps)
+            }
+
             row.swaps = swaps;
             return row
         })
@@ -463,12 +486,24 @@ export default function EnhancedTable() {
             } else if (!showOnGoing && r.exitResult === "ONGOING") {
                 return false
             }
+            if (filter) {
+                let found = false;
+                const filters = filter.split(";")
+                filters.map(filt => {
+                    if (r.token0.includes(filt.toUpperCase()) || r.token1.includes(filt.toUpperCase())) {
+                        found = true
+                    }
+                })
+
+                return found
+            }
+
             return true
         });
 
         setRowsToShow(newRowsToShowOnGoing)
 
-    }, [rows, showOnGoing])
+    }, [rows, showOnGoing, filter])
 
 
     const handleRequestSort = (event, property) => {
@@ -504,7 +539,7 @@ export default function EnhancedTable() {
             <div style={{ display: "flex", alignItems: "center", width: "100%", margin: "10px", width: '100%', height: "100px", "justifyContent": "center" }}>
 
                 <div style={{ margin: "0 10px" }}>
-                    <FileUploader loadFromDB={loadFromDB} />
+                    <FileUploader loadFromDB={loadFromDB} setLoadFromDB={setLoadFromDB} />
                 </div>
                 <div style={{ margin: "0 10px" }}>
                     <Button onClick={download} variant="contained">
@@ -531,7 +566,17 @@ export default function EnhancedTable() {
             <Typography style={{ 'color': "#000" }}>{daysLoaded.join(", ")}</Typography>
 
             <Paper sx={{ width: '100%', mb: 2 }}>
-                <EnhancedTableToolbar loadingPairs={loadingPairs} handleShowOnGoing={handleShowOnGoing} setAddresses={setAddresses} addresses={addresses} loadingAddresses={loadingAddresses} />
+                <EnhancedTableToolbar
+                    loadingPairs={loadingPairs}
+                    handleShowOnGoing={handleShowOnGoing}
+                    setAddresses={setAddresses}
+                    addresses={addresses}
+                    loadingAddresses={loadingAddresses}
+                    setFilter={setFilter}
+                    setAddressToQuery={setAddressToQuery}
+                    addressToQuery={addressToQuery}
+                    allSwaps={allSwaps}
+                />
                 <Typography
                     sx={{ flex: '1 1 100%' }}
                     variant="h6"

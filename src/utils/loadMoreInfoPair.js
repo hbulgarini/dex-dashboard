@@ -205,10 +205,9 @@ const loadMoreInfoPair = async (pair) => {
     const mints = await Promise.all(mintPromises);
     const burns = await Promise.all(burnPromises);
 
-    const allRecords = await readAllRecordsFromLocalStorageByPrefix(getSwapPrefix());
     const newRecords = await saveRecordsToLocalStorage(pair.id, records, getSwapPrefix())
 
-    return { swaps: [...records, ...allRecords], mints, burns }
+    return { swaps: records, mints, burns }
 }
 
 

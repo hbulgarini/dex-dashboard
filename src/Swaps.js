@@ -2,6 +2,7 @@ import * as React from 'react';
 import { DataGrid } from '@mui/x-data-grid';
 import Chip from '@mui/material/Chip';
 import { loadMoreInfoPair, calculateTotalSwapOut, calculateTotalSwapIn, calculateAllGasUsed, getNameFromAddressBook } from './utils/loadMoreInfoPair'
+import LinkWithClipboard from './LinkWithClipboard';
 
 function shortenText(text) {
     if (text.length <= 10) {
@@ -13,15 +14,22 @@ function shortenText(text) {
 
 const columns = [
     {
-        field: 'type', headerName: 'Type', width: 60, resizable: true,
+        field: 'type', headerName: 'Type', width: 100,
         renderCell: ({ row }) => <Chip label={row.type} color={row.type === "IN" ? "primary" : "error"} variant="outlined" />
 
+    },
+    {
+        field: 'pair',
+        headerName: 'Pair',
+        width: 120,
+        valueGetter: ({ row }) => `${row.token0}/${row.token1}`
     },
     {
         field: 'created', headerName: 'Date', width: 250,
 
     },
-    { field: 'from', headerName: 'From', width: 130, renderCell: ({ row }) => <a target="_blank" href={`https://etherscan.io/address/${row.from}`}> {getNameFromAddressBook(row.addresses, row.from)}</a> },
+    { field: 'from', headerName: 'From', width: 150, renderCell: ({ row }) => <LinkWithClipboard value={row.from} addresses={row.addresses} /> },
+
     { field: 'gasUsed', headerName: 'Gas Used', width: 200 },
     {
         field: 'status',

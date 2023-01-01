@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { clone } from 'lodash'
 import { getAddreessBookPrefix, saveRecordsToLocalStorage } from './utils/localStorageManager';
 import arrayMutators from 'final-form-arrays'
 import { Form, Field } from 'react-final-form'
@@ -8,15 +9,20 @@ import AccordionSummary from '@mui/material/AccordionSummary';
 import AccordionDetails from '@mui/material/AccordionDetails';
 import Typography from '@mui/material/Typography';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import Chip from '@mui/material/Chip';
 
-export default function AddressBook({ setAddresses, addresses }) {
+export default function AddressBook({ setAddresses, addresses, setAddressToQuery, addressToQuery }) {
     const onSubmit = React.useCallback((values) => {
-        console.log(values)
         saveRecordsToLocalStorage("addresses", values, getAddreessBookPrefix())
         setAddresses([values])
     }, [])
 
-
+    const addAddressToQuery = React.useCallback((index) => {
+        const { address } = addresses[0].addresses[index]
+        if (!addressToQuery.includes(address)) {
+            setAddressToQuery([...addressToQuery, address]);
+        }
+    }, [addressToQuery])
 
     return (
         <div>
@@ -26,7 +32,7 @@ export default function AddressBook({ setAddresses, addresses }) {
                     aria-controls="panel1a-content"
                     id="panel1a-header"
                 >
-                    <Typography>Accordion 1</Typography>
+                    <Typography>Address Book</Typography>
                 </AccordionSummary>
                 <AccordionDetails>
                     <Form
@@ -74,6 +80,7 @@ export default function AddressBook({ setAddresses, addresses }) {
                                                     >
                                                         ❌
                                                     </span>
+                                                    <Chip label="INSPECT" onClick={(value) => addAddressToQuery(index)} color="primary" variant="outlined" component="b" clickable />
                                                 </div>
                                             ))
                                         }
