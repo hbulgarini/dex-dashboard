@@ -19,6 +19,7 @@
     "ethers": "^5.7.2",
     "final-form": "^4.20.7",
     "final-form-arrays": "^3.0.2",
+    "gh-pages": "^4.0.0",
     "localforage": "^1.10.0",
     "lodash": "^4.17.21",
     "moment": "^2.29.4",
@@ -33,7 +34,9 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "predeploy": "yarn run build",
+    "deploy": "gh-pages -d build"
   },
   "eslintConfig": {
     "extends": [
