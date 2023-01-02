@@ -65,7 +65,7 @@ const columns = [
     {
         field: 'pair',
         headerName: 'Pair',
-        width: 120,
+        width: 200,
         valueGetter: ({ row }) => `${row.token0}/${row.token1}`
     },
     {
@@ -124,7 +124,7 @@ const columns = [
 export default function Swaps({ swaps, addresses }) {
     const swapsWithAddressBook = swaps.map(swap => ({ ...swap, addresses }))
     return (
-        <div style={{ height: 800, width: 2000 }}>
+        <div style={{ height: 800, width: 2000, marginBottom: '10px' }}>
             <Button onClick={() => downloadCSV(swapsWithAddressBook)}>Download Swaps</Button>
             <DataGrid
                 rows={swapsWithAddressBook}

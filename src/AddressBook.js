@@ -18,10 +18,6 @@ export default function AddressBook({ setAddresses, addresses, setAddressToQuery
     }, [])
 
     const addAddressToQuery = React.useCallback((fields, index) => {
-        console.log(' addAddressToQuery addresses', addresses)
-        console.log('fields', fields)
-        console.log(' addAddressToQuery index', index)
-
         const { address } = fields.value[index]
         if (!addressToQuery.includes(address)) {
             setAddressToQuery([...addressToQuery, address]);

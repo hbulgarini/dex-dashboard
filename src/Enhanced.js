@@ -422,14 +422,13 @@ export default function EnhancedTable() {
     const loadMoreInfo = React.useCallback(async (pair) => {
         setLoadingSwaps(true)
         const { swaps, mints, burns } = await loadMoreInfoPair(pair);
-        console.log('rows.length', rows.length);
 
         const newPairs = rows.map(row => {
             if (row.id === pair.id) {
-                console.log('pair.id found', pair.id, swaps)
                 row.swaps = swaps;
                 row.mints = mints;
                 row.burns = burns;
+
             }
             return row
         })
@@ -464,15 +463,7 @@ export default function EnhancedTable() {
 
     React.useEffect(() => {
         const rowsWithSwaps = rows.map(row => {
-            if (row.id === "0x2edb12720e3bda73dc813e28ca12e65902090fdd") {
-                console.log(`pair to be found ${row.id}`)
-            }
-
             const swaps = allSwaps.filter(swap => swap.pairId === row.id)
-            if (row.id === "0x2edb12720e3bda73dc813e28ca12e65902090fdd") {
-                console.log(`swaps id and swaps ${row.id}`, swaps)
-            }
-
             row.swaps = swaps;
             return row
         })
@@ -493,6 +484,8 @@ export default function EnhancedTable() {
                         found = true
                     }
                 })
+
+
 
 
                 if (showOnGoing) {

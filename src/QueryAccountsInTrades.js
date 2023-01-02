@@ -25,8 +25,6 @@ export default function QueryAccountsInTrades({ addressToQuery, addressBook, all
         setSwapsToDisplay({ ...setSwapsToDisplay, ...groupBy(swaps, 'from') });
     }, [allSwaps, addressBook, addressToQuery])
 
-    console.log('swapsToDisplay', swapsToDisplay)
-
     return (
         <div>
             <Accordion>

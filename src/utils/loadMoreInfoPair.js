@@ -205,7 +205,7 @@ const loadMoreInfoPair = async (pair) => {
     const mints = await Promise.all(mintPromises);
     const burns = await Promise.all(burnPromises);
 
-    const newRecords = await saveRecordsToLocalStorage(pair.id, records, getSwapPrefix())
+    await saveRecordsToLocalStorage(pair.id, records, getSwapPrefix())
 
     return { swaps: records, mints, burns }
 }
@@ -252,8 +252,6 @@ function getNameFromAddressBook(addressesBook, address) {
             }
         }
     }
-    // Iterate over the addresses in the addressesBook array
-
 
     // Return the address if it was not found in the addressesBook array
     return shortenText(address);
