@@ -17,8 +17,12 @@ export default function AddressBook({ setAddresses, addresses, setAddressToQuery
         setAddresses([values])
     }, [])
 
-    const addAddressToQuery = React.useCallback((index) => {
-        const { address } = addresses[0].addresses[index]
+    const addAddressToQuery = React.useCallback((fields, index) => {
+        console.log(' addAddressToQuery addresses', addresses)
+        console.log('fields', fields)
+        console.log(' addAddressToQuery index', index)
+
+        const { address } = fields.value[index]
         if (!addressToQuery.includes(address)) {
             setAddressToQuery([...addressToQuery, address]);
         }
@@ -75,12 +79,12 @@ export default function AddressBook({ setAddresses, addresses, setAddressToQuery
                                                         placeholder="Address"
                                                     />
                                                     <span
-                                                        onClick={() => fields.remove(index)}
+                                                        onClick={() => { fields.remove(index) }}
                                                         style={{ cursor: 'pointer' }}
                                                     >
                                                         ❌
                                                     </span>
-                                                    <Chip label="INSPECT" onClick={(value) => addAddressToQuery(index)} color="primary" variant="outlined" component="b" clickable />
+                                                    <Chip label="INSPECT" onClick={() => addAddressToQuery(fields, index)} color="primary" variant="outlined" component="b" clickable />
                                                 </div>
                                             ))
                                         }

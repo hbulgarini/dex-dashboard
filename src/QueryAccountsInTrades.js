@@ -40,10 +40,10 @@ export default function QueryAccountsInTrades({ addressToQuery, addressBook, all
                 <AccordionDetails>
                     {
                         Object.keys(swapsToDisplay).map(add => {
-                            return <>
+                            return <div key={add}>
                                 <Typography>{<LinkWithClipboard value={add} addresses={addressBook} />}</Typography>
                                 <Swaps swaps={swapsToDisplay[add]} addresses={addressBook} />
-                            </>
+                            </div>
                         })
                     }
 
