@@ -3,6 +3,7 @@ import { DataGrid } from '@mui/x-data-grid';
 import Chip from '@mui/material/Chip';
 import { loadMoreInfoPair, calculateTotalSwapOut, calculateTotalSwapIn, calculateAllGasUsed, getNameFromAddressBook } from './utils/loadMoreInfoPair'
 import LinkWithClipboard from './LinkWithClipboard';
+import Button from '@mui/material/Button';
 
 function shortenText(text) {
     if (text.length <= 10) {
@@ -10,6 +11,49 @@ function shortenText(text) {
     }
     return text.substring(0, 5) + "..." + text.substring(text.length - 5);
 }
+
+function downloadCSV(data) {
+    // Extract the keys from the first object in the array
+    const keys = Object.keys(data[0]);
+
+    // Convert the data array to an array of rows
+    const rows = data.map((obj) => {
+        // Replace the token0 and token1 properties with the symbol property
+        const row = keys.map((key) => {
+            if (key === 'tokenIn' || key === 'tokenOut') {
+                return obj[key].symbol;
+            }
+            return obj[key];
+        });
+        return row;
+    });
+
+    // Insert the keys as the first row
+    rows.unshift(keys);
+
+    // Convert the rows array to a CSV string
+    const csv = rows.map((row) => row.join(',')).join('\n');
+
+    // Create a Blob from the CSV string
+    const blob = new Blob([csv], { type: 'text/csv' });
+
+    // Create a URL for the Blob
+    const url = URL.createObjectURL(blob);
+
+    // Create a link element and set its attributes
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'data.csv';
+
+    // Append the link element to the document and click it
+    document.body.appendChild(link);
+    link.click();
+
+    // Remove the link element from the document
+    document.body.removeChild(link);
+}
+
+
 
 
 const columns = [
@@ -28,7 +72,7 @@ const columns = [
         field: 'created', headerName: 'Date', width: 250,
 
     },
-    { field: 'from', headerName: 'From', width: 150, renderCell: ({ row }) => <LinkWithClipboard value={row.from} addresses={row.addresses} /> },
+    { field: 'from', headerName: 'From', width: 150, renderCell: ({ row }) => <LinkWithClipboard value={row.from} addresses={row.addresses} type='address' /> },
 
     { field: 'gasUsed', headerName: 'Gas Used', width: 200 },
     {
@@ -81,6 +125,7 @@ export default function Swaps({ swaps, addresses }) {
     const swapsWithAddressBook = swaps.map(swap => ({ ...swap, addresses }))
     return (
         <div style={{ height: 800, width: 2000 }}>
+            <Button onClick={() => downloadCSV(swapsWithAddressBook)}>Download Swaps</Button>
             <DataGrid
                 rows={swapsWithAddressBook}
                 columns={columns}

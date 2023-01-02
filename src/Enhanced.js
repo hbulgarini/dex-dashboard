@@ -481,21 +481,33 @@ export default function EnhancedTable() {
 
     React.useEffect(() => {
         let newRowsToShowOnGoing = rows.filter(r => {
-            if (showOnGoing) {
-                return true
-            } else if (!showOnGoing && r.exitResult === "ONGOING") {
-                return false
-            }
+
             if (filter) {
                 let found = false;
                 const filters = filter.split(";")
                 filters.map(filt => {
-                    if (r.token0.includes(filt.toUpperCase()) || r.token1.includes(filt.toUpperCase())) {
+                    let token0 = r.token0.toUpperCase();
+                    let token1 = r.token1.toUpperCase();
+
+                    if (token0.includes(filt.toUpperCase()) || token1.includes(filt.toUpperCase())) {
                         found = true
                     }
                 })
 
+
+                if (showOnGoing) {
+                    return found
+                } else if (!showOnGoing && r.exitResult === "ONGOING") {
+                    return false
+                }
                 return found
+
+            }
+
+            if (showOnGoing) {
+                return true
+            } else if (!showOnGoing && r.exitResult === "ONGOING") {
+                return false
             }
 
             return true
